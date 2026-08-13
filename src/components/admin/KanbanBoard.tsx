@@ -103,30 +103,33 @@ export default function KanbanBoard() {
                   <Reorder.Item
                     key={card.id}
                     value={card}
-                    draggable
-                    onDragStart={(e: React.DragEvent) =>
-                      e.dataTransfer.setData(
-                        "application/json",
-                        JSON.stringify({ id: card.id, from: status })
-                      )
-                    }
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     whileDrag={{ scale: 1.04, boxShadow: "0 12px 30px rgba(0,0,0,0.4)" }}
                     className="cursor-grab rounded-xl border border-white/10 bg-slate-900/70 p-3 active:cursor-grabbing"
                   >
-                    <p className="text-xs font-medium" style={{ color: CATEGORY_META[card.category].color }}>
-                      {CATEGORY_META[card.category].label}
-                    </p>
-                    <p className="mt-0.5 line-clamp-1 text-sm font-semibold text-white">
-                      {card.title}
-                    </p>
-                    <div className="mt-2 flex items-center justify-between text-xs">
-                      <span style={{ color: PRIORITY_META[card.priority].color }}>
-                        {PRIORITY_META[card.priority].label}
-                      </span>
-                      <span className="text-slate-400">▲ {card.upvoteCount}</span>
+                    <div
+                      draggable
+                      onDragStart={(e: React.DragEvent) =>
+                        e.dataTransfer.setData(
+                          "application/json",
+                          JSON.stringify({ id: card.id, from: status })
+                        )
+                      }
+                    >
+                      <p className="text-xs font-medium" style={{ color: CATEGORY_META[card.category].color }}>
+                        {CATEGORY_META[card.category].label}
+                      </p>
+                      <p className="mt-0.5 line-clamp-1 text-sm font-semibold text-white">
+                        {card.title}
+                      </p>
+                      <div className="mt-2 flex items-center justify-between text-xs">
+                        <span style={{ color: PRIORITY_META[card.priority].color }}>
+                          {PRIORITY_META[card.priority].label}
+                        </span>
+                        <span className="text-slate-400">▲ {card.upvoteCount}</span>
+                      </div>
                     </div>
                   </Reorder.Item>
                 ))}
