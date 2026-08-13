@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthSession } from "@/lib/auth";
-import type { Category, Priority } from "@/types";
+import type { Category, Priority, Status } from "@/types";
 
 // GET /api/complaints?category=&status=&priority=&mine=1
 export async function GET(req: NextRequest) {
@@ -9,23 +10,25 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
   const category = searchParams.get("category") as Category | null;
-  const status = searchParams.get("status");
+  const status = searchParams.get("status") as Status | null;
   const priority = searchParams.get("priority") as Priority | null;
   const mine = searchParams.get("mine");
 
+  const where: Prisma.ComplaintWhereInput = {
+    ...(category ? { category } : {}),
+    ...(status ? { status } : {}),
+    ...(priority ? { priority } : {}),
+    ...(mine && session?.user ? { userId: session.user.id } : {}),
+  };
+
   const complaints = await prisma.complaint.findMany({
-    where: {
-      ...(category ? { category } : {}),
-      ...(status ? { status: status as never } : {}),
-      ...(priority ? { priority } : {}),
-      ...(mine && session?.user ? { userId: session.user.id } : {}),
-    },
+    where,
     include: {
       user: { select: { id: true, name: true, image: true } },
       assignedTo: { select: { id: true, name: true } },
       upvotes: { select: { userId: true } },
     },
-    orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+    orderBy: [{ priority: "desc" }, { createdAt: "desc" }] as Prisma.ComplaintOrderByWithRelationInput[],
   });
 
   const shaped = complaints.map((c) => ({

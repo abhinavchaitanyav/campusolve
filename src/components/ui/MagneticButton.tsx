@@ -17,7 +17,21 @@ function GlowTrail({ glowX, glowY }: { glowX: MotionValue<number>; glowY: Motion
   );
 }
 
-interface MagneticButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+// framer-motion's motion.button redefines several native event props (onDrag,
+// onDragStart/End, onAnimationStart/End, etc.) with its own gesture-based
+// signatures, so they're omitted here to avoid conflicting with the native
+// ButtonHTMLAttributes versions when spread onto <motion.button>.
+type NativePropsSafeForMotion = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  | "onDrag"
+  | "onDragStart"
+  | "onDragEnd"
+  | "onAnimationStart"
+  | "onAnimationEnd"
+  | "onAnimationIteration"
+>;
+
+interface MagneticButtonProps extends NativePropsSafeForMotion {
   children: ReactNode;
   strength?: number;
   variant?: "primary" | "ghost";
