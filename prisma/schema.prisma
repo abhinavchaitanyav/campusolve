@@ -1,0 +1,159 @@
+// CampuSolve — Campus Complaint & Service Tracker
+// Prisma schema (PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+  STAFF
+}
+
+enum Category {
+  WIFI
+  CLASSROOM
+  HOSTEL
+  LAB
+  MAINTENANCE
+  CLEANLINESS
+}
+
+enum Status {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+enum Priority {
+  LOW
+  MED
+  HIGH
+  URGENT
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role     @default(STUDENT)
+  createdAt     DateTime @default(now())
+
+  // NextAuth
+  accounts Account[]
+  sessions Session[]
+
+  complaints       Complaint[] @relation("FiledBy")
+  assignedComplaints Complaint[] @relation("AssignedTo")
+  upvotes          Upvote[]
+  statusLogs       StatusLog[] @relation("LoggedBy")
+
+  @@map("users")
+}
+
+model Complaint {
+  id          String     @id @default(cuid())
+  title       String
+  description String     @db.Text
+  category    Category
+  status      Status     @default(PENDING)
+  priority    Priority   @default(LOW)
+  location    String
+  roomTag     String?
+  imageUrl    String?
+
+  userId       String
+  user         User      @relation("FiledBy", fields: [userId], references: [id], onDelete: Cascade)
+
+  assignedToId String?
+  assignedTo   User?     @relation("AssignedTo", fields: [assignedToId], references: [id])
+
+  department   String?
+
+  upvotes     Upvote[]
+  logs        StatusLog[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  resolvedAt  DateTime?
+
+  @@index([status])
+  @@index([category])
+  @@index([userId])
+  @@map("complaints")
+}
+
+model Upvote {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, complaintId]) // one upvote per user per complaint
+  @@map("upvotes")
+}
+
+// Audit trail entries added by Admin/Staff when updating a complaint
+model StatusLog {
+  id          String    @id @default(cuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  fromStatus  Status?
+  toStatus    Status
+  note        String?   @db.Text
+  loggedById  String
+  loggedBy    User      @relation("LoggedBy", fields: [loggedById], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@map("status_logs")
+}
+
+// --- NextAuth required models ---
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
